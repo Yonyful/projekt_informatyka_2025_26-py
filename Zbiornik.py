@@ -1,143 +1,78 @@
-import sys
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QSlider, QLabel, QHBoxLayout
-from PyQt5.QtCore import Qt, QRectF, QPointF
-from PyQt5.QtGui import QPainter, QColor, QBrush, QPen, QPainterPath
+from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QSlider, QVBoxLayout
+from PyQt5.QtCore import Qt, QTimer, QPointF
+from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath
 
-class Zbiornik(QWidget):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setMinimumSize(300, 400)
-        self.top_trapez_h = 60
-        self.rect_h = 200
-        self.bot_trapez_h = 60
+class Zbiornik:
+    def __init__(self, x, y, width=100, height=140, nazwa=""):
+        self.x = x; self.y = y
+        self.width = width; self.height = height
+        self.nazwa = nazwa
+        self.pojemnosc = 100.0
+        self.aktualna_ilosc = 0.0
+        self.poziom = 0.0
 
-        self.width_top = 200
-        self.width_mid = 140
-        self.width_bot = 40
+        self.temperatura = 20.0
+        self.max_temperatura = 80.0
+        self.temperatura_otoczenia = 20.0
+        self.wspolczynnik_chlodzenia = self.temperatura_otoczenia / 1000.0
 
-        self.total_tank_height = self.top_trapez_h + self.rect_h + self.bot_trapez_h
-
-        self._poziom = 0.5
+    def dodaj_ciecz(self, ilosc, temperatura_cieczy):
+        wolne = self.pojemnosc - self.aktualna_ilosc
+        dodano = min(ilosc, wolne)
         
-        self.draw_x = 50
-        self.draw_y = 50
-
-    def setPoziom(self, poziom):
-        self._poziom = max(0.0, min(1.0, poziom))
-        self.update()
+        if self.aktualna_ilosc + dodano > 0: #Przekazywana jest rowniez temperatura cieczy pomiedzy zbiornikami 
+            nowa_temp = (self.aktualna_ilosc * self.temperatura + dodano * temperatura_cieczy) / (self.aktualna_ilosc + dodano)
+            self.temperatura = nowa_temp
+        
+        self.aktualna_ilosc += dodano
+        self.aktualizuj_poziom()
+        return dodano
     
-    def setPolozenie(self, x, y):
-        self.draw_x = x
-        self.draw_y = self.update()
 
-    def getPoziom(self):
-        return self._poziom
+    def usun_ciecz(self, ilosc):
+        usunieto = min(ilosc, self.aktualna_ilosc)
+        self.aktualna_ilosc -= usunieto
+        self.aktualizuj_poziom()
+        return usunieto
+
+    def aktualizuj_poziom(self):
+        self.poziom = self.aktualna_ilosc / self.pojemnosc
+
+    def set_empty(self):
+        self.aktualna_ilosc = 0.0
+        self.aktualizuj_poziom()
+
+    def set_full(self):
+        self.aktualna_ilosc = 100.0
+        self.aktualizuj_poziom() 
+
+    def dodaj_temperature(self, ilosc): 
+        self.temperatura += ilosc
+        self.temperatura = max(0, self.temperatura)
     
-    def paintEvent(self, event):
-        painter = QPainter(self)
-        painter.setRenderHint(QPainter.Antialiasing)
+    def chlodz(self):
+        ilosc = self.temperatura - self.temperatura_otoczenia
+        self.temperatura -= ilosc * self.wspolczynnik_chlodzenia
 
-        cx = self.draw_x + (self.width_top / 2)
-        start_y = self.draw_y
+    def czy_pusty(self): return self.aktualna_ilosc <= 0.1
+    def czy_pelny(self): return self.aktualna_ilosc >= self.pojemnosc - 0.1
 
-        path = QPainterPath()
+    def punkt_gora_srodek(self): return (self.x + self.width/2, self.y)
+    def punkt_dol_srodek(self): return (self.x + self.width/2, self.y + self.height)
 
-        p1_tl = QPointF(cx - self.width_top/2, start_y)
-        p1_tr = QPointF(cx + self.width_top/2, start_y)
-        p2_ml = QPointF(cx - self.width_mid/2, start_y + self.top_trapez_h)
-        p2_mr = QPointF(cx + self.width_mid/2, start_y + self.top_trapez_h)
-        p3_bl = QPointF(cx - self.width_mid/2, start_y + self.top_trapez_h + self.rect_h)
-        p3_br = QPointF(cx + self.width_mid/2, start_y + self.top_trapez_h + self.rect_h)
-        p4_bl = QPointF(cx - self.width_bot/2, start_y + self.total_tank_height)
-        p4_br = QPointF(cx + self.width_bot/2, start_y + self.total_tank_height)
+    def draw(self, painter):
+        if self.poziom > 0:
+            h_cieczy = self.height * self.poziom
+            y_start = self.y + self.height - h_cieczy
+            painter.setPen(Qt.NoPen)
+            painter.setBrush(QColor(0,120,255,200))
+            painter.drawRect(int(self.x+3), int(y_start), int(self.width - 6),int(h_cieczy - 2))
 
-
-        path.moveTo(p1_tl)
-        path.lineTo(p1_tr); path.lineTo(p2_mr); path.lineTo(p3_br)
-        path.lineTo(p4_br); path.lineTo(p4_bl); path.lineTo(p3_bl)
-        path.lineTo(p2_ml); path.lineTo(p1_tl)
-        path.closeSubpath()
-
-        painter.save()
-        painter.setClipPath(path)
-
-        liquid_height_px = self.total_tank_height * self._poziom
-        rect_liquid = QRectF(cx - self.width_top/2, start_y + self.total_tank_height - liquid_height_px, self.width_top, liquid_height_px)
-
-        painter.fillRect(rect_liquid, QColor(0,120,255,180))
-        pen = QPen(Qt.gray, 4)
+        pen = QPen(Qt.white, 4)
+        pen.setJoinStyle(Qt.MiterJoin)
         painter.setPen(pen)
         painter.setBrush(Qt.NoBrush)
-        painter.drawPath(path)
-
-
-class MainWindow(QWidget):
-    def __init__(self):
-        super().__init__()
-        self.setWindowTitle("Zbiornik PyQt")
-        self.resize(500, 600)
-
-
-        container = QHBoxLayout()
-        layout = QVBoxLayout()
-        layout2= QVBoxLayout()
-        container.addLayout(layout)
-        container.addLayout(layout2)
-        self.setLayout(container)
-
-        self.zbiornik1 = Zbiornik()
-        self.zbiornik1.setStyleSheet("background-color: #222;")
-        self.zbiornik2 = Zbiornik()
-        self.zbiornik2.setStyleSheet("background-color: #222;")
-        layout.addWidget(self.zbiornik1)
-        layout2.addWidget(self.zbiornik2)
-
-        self.slider_zbiornik1 = QSlider(Qt.Horizontal)
-        self.slider_zbiornik1.setRange(0,100)
-        self.slider_zbiornik1.setValue(50)
-        self.slider_zbiornik1.valueChanged.connect(self.zmien_poziom)
-        layout.addWidget(self.slider_zbiornik1)
-
-        self.slider_zbiornik2 = QSlider(Qt.Horizontal)
-        self.slider_zbiornik2.setRange(0,100)
-        self.slider_zbiornik2.setValue(50)
-        self.slider_zbiornik2.valueChanged.connect(self.zmien_poziom2)
-        layout2.addWidget(self.slider_zbiornik2)
-
-
-
-        self.label_slider_zbiornik1 = QLabel("Poziom: 50%")
-        self.label_slider_zbiornik1.setAlignment(Qt.AlignCenter)
-        layout.addWidget(self.label_slider_zbiornik1)
-
-        self.label_slider_zbiornik2 = QLabel("Poziom: 50%")
-        self.label_slider_zbiornik2.setAlignment(Qt.AlignCenter)
-        layout2.addWidget(self.label_slider_zbiornik2)
-
-    def zmien_poziom(self, value):
-        poziom_float = value / 100.0
-        self.zbiornik1.setPoziom(poziom_float)
-        self.label_slider_zbiornik1.setText(f"Poziom: {value}%")
-
-    def zmien_poziom2(self, value):
-        poziom_float = value / 100.0
-        self.zbiornik2.setPoziom(poziom_float)
-        self.label_slider_zbiornik2.setText(f"Poziom: {value}%")    
-            
-
-
-
-if __name__ == '__main__':
-    app =QApplication(sys.argv)
-    window = MainWindow()
-    window.show()
-    sys.exit(app.exec_())
-
-
-
-
-
-    
-
-
-
+        painter.drawRect(int(self.x), int(self.y), int(self.width), int(self.height))
+        painter.setPen(Qt.white)
+        painter.drawText(int(self.x), int(self.y - 10), self.nazwa)
+        painter.drawText(int(self.x), int(self.y + self.height + 15), f"{self.temperatura:.1f} °C")
