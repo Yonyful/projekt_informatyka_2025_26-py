@@ -97,23 +97,32 @@ class SymulacjaKaskady(QWidget):
         #Inicializacja zbiornikow
         self.z1 = Zbiornik(50, 50, nazwa = "Zbiornik1")
         self.z1.aktualna_ilosc = 100.0; self.z1.aktualizuj_poziom()
-        self.z2 = Zbiornik(350, 200, nazwa ="Zbiornik2")
-        self.z3 = Zbiornik(650, 350, nazwa = "Zbiornik3")
-        self.zbiorniki = [self.z1, self.z2, self.z3]
+        self.z2 = Zbiornik(300, 50, nazwa ="Zbiornik2")
+        self.z3 = Zbiornik(600, 350, nazwa = "Zbiornik3")
+        self.z4 = Zbiornik(300, 350, nazwa = "Zbiornik4")
+        self.zbiorniki = [self.z1, self.z2, self.z3, self.z4]
 
         #Punkty przylaczen rury 1 (Zbiornik 1-2)
-        p_start = self.z1.punkt_dol_srodek()
+        p_start = self.z1.punkt_gora_srodek()
         p_koniec = self.z2.punkt_gora_srodek()
         mid_y = (p_start[1] + p_koniec[1]) / 2
         self.rura1 = Rura([p_start, (p_start[0], mid_y), (p_koniec[0], mid_y), p_koniec])
 
-        #Przylaczen rury 2 (Zbiornik 2-3)
+        #Punkty przylaczen rury 2 (Zbiornik 2-3)
         p_start2 = self.z2.punkt_dol_srodek()
         p_koniec2 = self.z3.punkt_gora_srodek()
         mid_y2 = (p_start2[1] + p_koniec2[1]) / 2
         self.rura2 = Rura([p_start2, (p_start2[0], mid_y2), (p_koniec2[0], mid_y2), p_koniec2])
 
-        self.rury = [self.rura1, self.rura2]
+
+        #Punkty przylaczen rury 3 (Zbiornik 3-4)
+        p_start3 = self.z3.punkt_dol_srodek()
+        p_koniec3 = self.z4.punkt_dol_srodek()
+        mid_y3 = (p_start3[1] + p_koniec3[1]) / 2
+        self.rura3 = Rura([p_start3, (p_start3[0], mid_y3), (p_koniec3[0], mid_y3), p_koniec3])
+
+
+        self.rury = [self.rura1, self.rura2, self.rura3]
 
         #Timer
         self.timer = QTimer()
@@ -173,22 +182,30 @@ class SymulacjaKaskady(QWidget):
         self.running = not self.running
 
     def logika_przeplywu(self):
+        
         plynie_1 = False
         if not self.z1.czy_pusty() and not self.z2.czy_pelny():
             ilosc = self.z1.usun_ciecz(self.flow_speed)
             self.z2.dodaj_ciecz(ilosc)
             plynie_1 = True
-
         self.rura1.ustaw_przeplyw(plynie_1)
+    
         plynie_2 = False
-
         if self.z2.aktualna_ilosc > 5.0 and not self.z3.czy_pelny():
             ilosc = self.z2.usun_ciecz(self.flow_speed)
             self.z3.dodaj_ciecz(ilosc)
             plynie_2 = True
-
         self.rura2.ustaw_przeplyw(plynie_2)
         self.update()
+
+        plynie_3 = False
+        if self.z3.aktualna_ilosc > 5.0 and not self.z4.czy_pelny():
+            ilosc = self.z3.usun_ciecz(self.flow_speed)
+            self.z4.dodaj_ciecz(ilosc)
+            plynie_3 = True
+        self.rura3.ustaw_przeplyw(plynie_3)
+        self.update()
+            
 
     def paintEvent(self, event):
         p = QPainter(self)
