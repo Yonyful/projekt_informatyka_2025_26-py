@@ -1,9 +1,10 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QSlider, QVBoxLayout
 from PyQt5.QtCore import Qt, QTimer, QPointF
 from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath
+import time
 
 class Pompa: 
-    def __init__(self, x, y, zrodlo, cel, rura, wydajnosc, nazwa=""):
+    def __init__(self, x, y, wydajnosc, nazwa=""):
         self.x = x
         self.y = y
         self.r = 25
@@ -12,25 +13,27 @@ class Pompa:
         self.wlaczona = False
         self.nazwa = nazwa
         
-        self.zrodlo = zrodlo
-        self.cel = cel
-        self.rura = rura
+        #Parametry czasowe, majace na celu zwiekszenie realizmu symulacji
+        self.min_czas_pracy = 3.0
+        self.min_czas_postoju = 2.0
+        self.czas_ost_wl = 0
+        self.czas_ost_wyl = 0
 
-    def wlacz(self): #Przelaczenie dzialania pompy
-        self.wlaczona = not self.wlaczona
-    
-    def pompuj(self): #Logika wypompowywania
-        if not self.wlaczona:
-            self.rura.ustaw_przeplyw(False)
-            return
-        if not self.zrodlo.czy_pusty() and not self.cel.czy_pelny():
-            ilosc = self.zrodlo.usun_ciecz(self.wydajnosc)
-            self.cel.dodaj_ciecz(ilosc, self.zrodlo.temperatura)
-            self.rura.ustaw_przeplyw(True)
-        else:
-            self.rura.ustaw_przeplyw(False)
-    
+        #Ilosc pozostala do dopompowania (jedynie dla pompy zewnetrznej)
+        self.pozostalo = 0.0
 
+    #Ustawianie stanu wl/wyl zaleznie od spelnienia zadanego warunku
+    def ustaw_stan(self, warunek: bool):
+        czas = time.monotonic()
+        if warunek and not self.wlaczona:
+            if czas-self.czas_ost_wyl >= self.min_czas_postoju:
+                self.wlaczona = True
+                self.czas_ost_wl = czas
+        elif not warunek and self.wlaczona:
+            if czas-self.czas_ost_wl >= self.min_czas_pracy:
+                self.wlaczona = False
+                self.czas_ost_wyl = czas
+    
     def draw(self, painter):
         #Rozne kolory pompy zaleznie od jej stanu
         if self.wlaczona:
@@ -50,4 +53,4 @@ class Pompa:
         painter.drawText(self.x - 10, self.y + 7, "M")
 
 
-        painter.drawText(self.x - 25, self.y + self.r + 15, self.nazwa)
+        painter.drawText(self.x - 30, self.y + self.r + 15, self.nazwa)

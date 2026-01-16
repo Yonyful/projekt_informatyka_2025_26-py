@@ -12,7 +12,7 @@ class Zbiornik:
         self.poziom = 0.0
 
         self.temperatura = 20.0
-        self.max_temperatura = 80.0
+        self.max_temperatura = 40.0
         self.temperatura_otoczenia = 20.0
         self.wspolczynnik_chlodzenia = self.temperatura_otoczenia / 1000.0
 

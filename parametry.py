@@ -20,7 +20,7 @@ class Parametry(QDialog):
         self.label_flow.setStyleSheet("color: white;")
         self.slider_flow = QSlider(Qt.Horizontal)
         self.slider_flow.setMinimum(1)
-        self.slider_flow.setMaximum(300)
+        self.slider_flow.setMaximum(100)
         self.slider_flow.setValue(int(symulacja.flow_speed*100))
         self.slider_flow.valueChanged.connect(self.zmien_flow)
 
@@ -45,7 +45,7 @@ class Parametry(QDialog):
             label.setStyleSheet("color: white;")
             slider = QSlider(Qt.Horizontal)
             slider.setMinimum(1)
-            slider.setMaximum(3000)
+            slider.setMaximum(10000)
             slider.setValue(int(grzalka.moc*10))
             slider.valueChanged.connect(lambda value, g = grzalka, l = label: self.zmien_moc(g, l, value))
             layout.addWidget(label)

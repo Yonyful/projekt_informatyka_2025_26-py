@@ -16,23 +16,19 @@ class Grzalka:
         self.efektywnosc = 0.0005 #Ile stopnii celsjusza na jednostke mocy
         self.parowanie = 0.00005 #Ile objetosci wyparowuje na jednostke mocy
 
-    def wlacz(self):
+    def wlacz(self): #Funkcja wlaczajaca, do debugowania
         self.wlaczona = not self.wlaczona
     
     def grzej(self):
         if self.zbiornik.czy_pusty():
             self.wlaczona = False
             return
-        if self.zbiornik.temperatura <= self.zbiornik.max_temperatura:
-            self.wlaczona = True
-            delta_temperatury = self.moc * self.efektywnosc
-            self.zbiornik.dodaj_temperature(delta_temperatury)
-        
-        if self.wlaczona:
-            delta_ciecz = self.moc* self.parowanie
-            self.zbiornik.usun_ciecz(delta_ciecz)
+        delta_temperatury = self.moc * self.efektywnosc
+        self.zbiornik.dodaj_temperature(delta_temperatury)
+        delta_ciecz = self.moc * self.parowanie
+        self.zbiornik.usun_ciecz(delta_ciecz)
+            
     
-
     def draw(self, painter):
         if self.wlaczona:
             kolor = QColor(255, 100, 0)
