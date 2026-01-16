@@ -4,7 +4,7 @@ from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath
 
 
 #Okno do zmiany parametrow ukladu
-class Parametry(QDialog):
+class Parametry(QWidget):
     def __init__(self, symulacja):
         super().__init__()
         self.symulacja = symulacja

@@ -7,6 +7,7 @@ from rura import Rura
 from pompa import Pompa 
 from zbiornik import Zbiornik
 from parametry import Parametry
+from Alarmy import Alarmy 
 
 
     
@@ -16,6 +17,8 @@ class SymulacjaKaskady(QWidget):
 
         self.running = False
         self.flow_speed = 0.3
+
+        self.okno_alramy = Alarmy()
 
         self.setWindowTitle("Kaskada: Dol -> Gora")
         self.setFixedSize(900, 600)
@@ -83,23 +86,25 @@ class SymulacjaKaskady(QWidget):
         self.btn.setStyleSheet("background-color: #444; color: white;")
         self.btn.clicked.connect(self.przelacz_symulacje)
 
-        #Przycisk ON/OFF pompy 1
-        self.btn2 = QPushButton("POMPA1 ON/OFF", self)
-        self.btn2.setGeometry(50, 550, 100, 30)
-        self.btn2.setStyleSheet("background-color: #444; color: white;")
-        self.btn2.clicked.connect(lambda: (self.p1.wlacz(), self.update()))
-
         #Wejscie do ustawien 
-        self.btn3 = QPushButton("Parametry", self)
-        self.btn3.setGeometry(750, 550, 100, 30)
-        self.btn3.setStyleSheet("background-color: #444; color: white;")
-        self.btn3.clicked.connect(self.zmien_parametry)
+        self.btn2 = QPushButton("Parametry", self)
+        self.btn2.setGeometry(750, 550, 100, 30)
+        self.btn2.setStyleSheet("background-color: #444; color: white;")
+        self.btn2.clicked.connect(self.zmien_parametry)
         self.parametry = Parametry(self)
 
-        self.btn4 = QPushButton("GRZ Z1 ON/OFF", self)
-        self.btn4.setGeometry(50, 450, 100, 30)
-        self.btn4.setStyleSheet("background-color: #444; color: white;")
-        self.btn4.clicked.connect(self.g1.wlacz)
+        #Wejscie do alarmow
+        self.btn3 = QPushButton("Alarmy", self)
+        self.btn3.setGeometry(750, 500, 100, 30)
+        self.btn3.setStyleSheet("background-color: #444; color: white;")
+        self.btn3.clicked.connect(self.otworz_alarmy)
+
+
+
+        
+        
+
+    
 
         
       
@@ -112,6 +117,32 @@ class SymulacjaKaskady(QWidget):
     
     def calkowita_ilosc(self): #Funkcja zliczajaca calkowita ilosc wody w zbiornikach 
         return sum(z.aktualna_ilosc for z in self.zbiorniki)
+    
+    def sprawdz_alarmy(self):
+        alarmy = []
+        for z in self.zbiorniki:
+            #Alarm zbyt wysokiej temperatury
+            if z.temperatura >= z.max_temperatura + 3:
+                alarmy.append(f"{z.nazwa}: Wysoka temperatura cieczy {z.temperatura:.1f} °C")
+            #Alarm przepelnienia zbiornika
+            if z.czy_pelny():
+                alarmy.append(f"{z.nazwa} jest pelny")
+            #Alarm niskiej ilosci cieczy w zbiorniku
+            if z.aktualna_ilosc < 5.0:
+                alarmy.append(f"{z.nazwa}: niski poziom cieczy")
+        
+        if self.calkowita_ilosc() < self.minimalna_calkowita_ilosc:
+            alarmy.append("Zbyt niski calkowity poziom cieczy w ukladzie")
+
+            
+
+
+
+        self.okno_alramy.wstaw_alarmy(alarmy)
+
+    
+   
+
 
     def logika_przeplywu(self):
 
@@ -163,7 +194,7 @@ class SymulacjaKaskady(QWidget):
         
         #Logika przeplywu rury 2, woda bedzie usuwana ze zbiornika 2 tylko wtedy gdy temperatura cieczy zblizy sie do temperatury otoczenia 
         plynie_2 = False
-        if self.z2.aktualna_ilosc > 5.0 and not self.z3.czy_pelny() and self.z2.temperatura <= self.z2.temperatura_otoczenia + 0.5:
+        if self.z2.aktualna_ilosc > 5.0 and not self.z3.czy_pelny() and self.z2.temperatura <= self.z2.temperatura_otoczenia + 1.5:
             ilosc = self.z2.usun_ciecz(self.flow_speed)
             self.z3.dodaj_ciecz(ilosc, self.z2.temperatura)
             plynie_2 = True
@@ -177,10 +208,10 @@ class SymulacjaKaskady(QWidget):
             plynie_3 = True
         self.rura3.ustaw_przeplyw(plynie_3)
 
-        
+        self.sprawdz_alarmy()
         self.update()
             
-    def paintEvent(self, event):
+    def paintEvent(self, event): #Procedury rysujace elementy 
         p = QPainter(self)
         p.setRenderHint(QPainter.Antialiasing)
         for r in self. rury: r.draw(p)
@@ -188,8 +219,11 @@ class SymulacjaKaskady(QWidget):
         for x in self.pompy: x.draw(p)
         for g in self.grzalki: g.draw(p)
     
-    def zmien_parametry(self):
+    def zmien_parametry(self): #Wejscie do okna ustawien 
         self.parametry.show()
+    
+    def otworz_alarmy(self):
+        self.okno_alramy.show()
         
 
 if __name__ == '__main__': #Glowne okno

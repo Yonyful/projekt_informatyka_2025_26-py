@@ -14,7 +14,7 @@ class Zbiornik:
         self.temperatura = 20.0
         self.max_temperatura = 40.0
         self.temperatura_otoczenia = 20.0
-        self.wspolczynnik_chlodzenia = self.temperatura_otoczenia / 1000.0
+        self.wspolczynnik_chlodzenia = self.temperatura_otoczenia / 8000.0
 
     def dodaj_ciecz(self, ilosc, temperatura_cieczy):
         wolne = self.pojemnosc - self.aktualna_ilosc
