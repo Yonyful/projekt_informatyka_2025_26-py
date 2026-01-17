@@ -19,6 +19,7 @@ class SymulacjaKaskady(QWidget):
         self.flow_speed = 0.3
 
         self.okno_alramy = Alarmy()
+        self.plynie_3 = False
 
         self.setWindowTitle("Kaskada: Dol -> Gora")
         self.setFixedSize(900, 600)
@@ -28,6 +29,7 @@ class SymulacjaKaskady(QWidget):
         self.z1 = Zbiornik(50, 50, nazwa = "Zbiornik1")
         self.z1.aktualna_ilosc = 100.0; self.z1.aktualizuj_poziom()
         self.z2 = Zbiornik(400, 50, nazwa ="Zbiornik2")
+        self.z2.aktualna_ilosc = 50.0; self.z2.aktualizuj_poziom()
         self.z3 = Zbiornik(600, 350, nazwa = "Zbiornik3")
         self.z4 = Zbiornik(300, 350, nazwa = "Zbiornik4")
         self.zbiorniki = [self.z1, self.z2, self.z3, self.z4]
@@ -46,20 +48,30 @@ class SymulacjaKaskady(QWidget):
         p_start2 = self.z2.punkt_dol_srodek()
         p_koniec2 = self.z3.punkt_gora_srodek()
         mid_y2 = (p_start2[1] + p_koniec2[1]) / 2
-        self.rura2 = Rura([p_start2, (p_start2[0], mid_y2), (p_koniec2[0], mid_y2), p_koniec2])
+        rozgalezienie_r2 = (p_start2[0], p_start2[1] + 90)
+        self.rura2 = Rura()
+        #Pionowo w dol
+        self.rura2.dodaj_sciezke([p_start2, rozgalezienie_r2])
+        #Galaz do Z3
+        self.rura2.dodaj_sciezke([rozgalezienie_r2, (rozgalezienie_r2[0], mid_y2), (p_koniec2[0], mid_y2), p_koniec2])
+        #Galaz do Z4
+        p_koniec5 = self.z4.punkt_dol_srodek()
+        przesuniecie_5 = self.z4.y + 140
+        self.rura2.dodaj_sciezke([rozgalezienie_r2, (rozgalezienie_r2[0], przesuniecie_5), (p_koniec5[0], przesuniecie_5), p_koniec5])
 
 
         #Punkty przylaczen rury 3 (Zbiornik 3-4)
         p_start3 = self.z3.punkt_dol_srodek()
         p_koniec3 = self.z4.punkt_dol_srodek()
         mid_y3 = (p_start3[1] + p_koniec3[1]) / 2
-        self.rura3 = Rura([p_start3, (p_start3[0], mid_y3), (p_koniec3[0], mid_y3), p_koniec3])
+        self.rura3 = Rura([p_start3, (p_start3[0], mid_y3 + 30), (p_koniec3[0], mid_y3 + 30), p_koniec3])
 
-        #Punkty przylaczen rury 4 (Zbiornik 4-1, zamkniecie obiegu)
+        #Punkty przylaczen rury 4 (Zbiornik 4-1)
         p_start4 = self.z4.punkt_gora_srodek()
         p_koniec4 = self.z1.punkt_dol_srodek()
         mid_y4 = (p_start4[1] + p_koniec[1]) / 2
         self.rura4 = Rura([p_start4, (p_start4[0], mid_y4), (p_koniec4[0], mid_y4), p_koniec4])
+
 
         self.rury = [self.rura1, self.rura2, self.rura3, self.rura4]
 
@@ -102,14 +114,6 @@ class SymulacjaKaskady(QWidget):
 
 
         
-        
-
-    
-
-        
-      
-
-
     def przelacz_symulacje(self): #Przelaczenie symulacji ON/OFF
         if self.running: self.timer.stop()
         else: self.timer.start(20)
@@ -133,10 +137,6 @@ class SymulacjaKaskady(QWidget):
         
         if self.calkowita_ilosc() < self.minimalna_calkowita_ilosc:
             alarmy.append("Zbyt niski calkowity poziom cieczy w ukladzie")
-
-            
-
-
 
         self.okno_alramy.wstaw_alarmy(alarmy)
 
@@ -170,43 +170,58 @@ class SymulacjaKaskady(QWidget):
         if self.g1.wlaczona:
             self.g1.grzej()
        
-        #Logika pompy 1
+        #Logika pompy 1 i rury4
         warunek_p1 = (not self.z4.czy_pusty() and not self.z1.czy_pelny() and self.z4.temperatura >= self.z4.max_temperatura)
         self.p1.ustaw_stan(warunek_p1)
         if self.p1.wlaczona:
             ilosc = self.z4.usun_ciecz(self.p1.wydajnosc)
             self.z1.dodaj_ciecz(ilosc, self.z4.temperatura)
-            self.rura4.ustaw_przeplyw(True)
+            self.rura4.ustaw_przeplyw(0, True)
         else:
-            self.rura4.ustaw_przeplyw(False)
+            self.rura4.ustaw_przeplyw(0, False)
            
 
         #Wszystkie zbiorniki "samoczynnie" sie chlodza
         for z in self.zbiorniki: z.chlodz()
 
-        #Logika przelywu rury 1
+        #Logika przelywu rury 1 Z1-Z2
         plynie_1 = False
         if not self.z1.czy_pusty() and not self.z2.czy_pelny():
             ilosc = self.z1.usun_ciecz(self.flow_speed)
             self.z2.dodaj_ciecz(ilosc, self.z1.temperatura)
             plynie_1 = True
-        self.rura1.ustaw_przeplyw(plynie_1)
+        self.rura1.ustaw_przeplyw(0, plynie_1)
         
-        #Logika przeplywu rury 2, woda bedzie usuwana ze zbiornika 2 tylko wtedy gdy temperatura cieczy zblizy sie do temperatury otoczenia 
+        #Logika przeplywu rury 2 Z2-Z3
         plynie_2 = False
-        if self.z2.aktualna_ilosc > 5.0 and not self.z3.czy_pelny() and self.z2.temperatura <= self.z2.temperatura_otoczenia + 1.5:
-            ilosc = self.z2.usun_ciecz(self.flow_speed)
+        if self.z2.aktualna_ilosc > 5.0 and not self.z3.czy_pelny():
+            ilosc = self.z2.usun_ciecz(self.flow_speed/2)
             self.z3.dodaj_ciecz(ilosc, self.z2.temperatura)
             plynie_2 = True
-        self.rura2.ustaw_przeplyw(plynie_2)
+        self.rura2.ustaw_przeplyw(1, plynie_2)
 
-        #Logika przeplywu rury 3
-        plynie_3 = False
-        if self.z3.aktualna_ilosc > 5.0 and not self.z4.czy_pelny():
+        #Logika przeplywu rury 3 Z3-Z4
+        if not self.plynie_3:
+            if self.z3.aktualna_ilosc > 22.0 and self.z4.aktualna_ilosc <= 90.0 and self.z3.temperatura <= self.z3.temperatura_otoczenia + 2:
+                self.plynie_3 = True
+        else:
+            if self.z3.aktualna_ilosc < 18.0 or self.z4.czy_pelny() or self.z3.temperatura >= self.z3.temperatura_otoczenia + 3:
+                self.plynie_3 = False
+        if self.plynie_3:
             ilosc = self.z3.usun_ciecz(self.flow_speed)
             self.z4.dodaj_ciecz(ilosc, self.z3.temperatura)
-            plynie_3 = True
-        self.rura3.ustaw_przeplyw(plynie_3)
+        self.rura3.ustaw_przeplyw(0, self.plynie_3)
+
+
+        #Logika przeplywu rury 5
+        plynie_5 = False
+        if self.z2.aktualna_ilosc > 5.0 and self.z4.aktualna_ilosc <= 90.0:
+            ilosc = self.z2.usun_ciecz(self.flow_speed/2)
+            self.z4.dodaj_ciecz(ilosc, self.z2.temperatura)
+            plynie_5 = True
+        self.rura2.ustaw_przeplyw(0, plynie_5 or plynie_2)
+        self.rura2.ustaw_przeplyw(2, plynie_5)
+
 
         self.sprawdz_alarmy()
         self.update()

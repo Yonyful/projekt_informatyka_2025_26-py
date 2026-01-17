@@ -1,6 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QSlider, QVBoxLayout
-from PyQt5.QtCore import Qt, QTimer, QPointF
-from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QColor, QPen
 
 class Zbiornik:
     def __init__(self, x, y, width=100, height=140, nazwa=""):

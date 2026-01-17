@@ -1,6 +1,4 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QPushButton, QDialog, QLabel, QSlider, QVBoxLayout, QListWidget
-from PyQt5.QtCore import Qt, QTimer, QPointF
-from PyQt5.QtGui import QPainter, QColor, QPen, QPainterPath
+from PyQt5.QtWidgets import QWidget, QPushButton, QLabel, QVBoxLayout, QListWidget
 from datetime import datetime
 
 class Alarmy(QWidget):
